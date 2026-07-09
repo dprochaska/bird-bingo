@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#192C22"/>
+  <!-- Bingo grid (3x3 suggestion) -->
+  <rect x="80" y="80" width="352" height="352" rx="24" fill="#1F3529"/>
+  <!-- Grid lines -->
+  <line x1="80" y1="197" x2="432" y2="197" stroke="#2E5038" stroke-width="8"/>
+  <line x1="80" y1="315" x2="432" y2="315" stroke="#2E5038" stroke-width="8"/>
+  <line x1="197" y1="80" x2="197" y2="432" stroke="#2E5038" stroke-width="8"/>
+  <line x1="315" y1="80" x2="315" y2="432" stroke="#2E5038" stroke-width="8"/>
+  <!-- Gold checkmarks in some cells -->
+  <text x="138" y="170" font-size="80" text-anchor="middle" fill="#E2BC44">✓</text>
+  <text x="256" y="288" font-size="80" text-anchor="middle" fill="#E2BC44">✓</text>
+  <text x="374" y="406" font-size="80" text-anchor="middle" fill="#E2BC44">✓</text>
+  <!-- Feather accent -->
+  <text x="256" y="300" font-size="130" text-anchor="middle" fill="none" opacity="0">🪶</text>
+</svg>

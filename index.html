@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Bird Bingo">
+  <meta name="theme-color" content="#192C22">
+  <title>Bird Bingo</title>
+  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #192C22;
+      --panel:    #1F3529;
+      --cell:     #1F3529;
+      --border:   #2E5038;
+      --hover:    #2E5A3A;
+      --checked:  #243D2E;
+      --gold:     #E2BC44;
+      --gold-dk:  #C9A82E;
+      --cream:    #F0E6CC;
+      --muted:    #A09070;
+      --green:    #5C9E70;
+      --win:      #C9A82E;
+      --error:    #E07B5A;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      color: var(--cream);
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100%;
+      padding: env(safe-area-inset-top, 20px) 14px env(safe-area-inset-bottom, 28px);
+      padding-top: max(env(safe-area-inset-top), 20px);
+      padding-bottom: max(env(safe-area-inset-bottom), 28px);
+    }
+
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      color: var(--gold);
+      font-size: clamp(1.6rem, 5vw, 2rem);
+      letter-spacing: 0.06em;
+    }
+
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    .screen.active { display: flex; }
+
+    /* ── Key screen ── */
+    #key-screen {
+      justify-content: center;
+      flex: 1;
+      max-width: 360px;
+      text-align: center;
+      gap: 14px;
+      margin-top: 40px;
+    }
+    .feather { font-size: 2.8rem; }
+    .key-desc { color: var(--muted); font-size: 0.88rem; line-height: 1.6; }
+    .key-hint { color: var(--muted); font-size: 0.78rem; }
+    .key-hint b { color: var(--gold); font-weight: 500; }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 13px 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--cream);
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+    input:focus { border-color: var(--green); }
+
+    .btn-primary {
+      background: var(--gold);
+      color: var(--bg);
+      border: none;
+      border-radius: 10px;
+      padding: 14px 0;
+      width: 100%;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+      -webkit-appearance: none;
+    }
+    .btn-primary:active { background: var(--gold-dk); }
+
+    /* ── Loading screen ── */
+    #loading-screen {
+      justify-content: center;
+      flex: 1;
+      gap: 12px;
+      text-align: center;
+      margin-top: 80px;
+    }
+    .load-icon { font-size: 2.5rem; }
+    .load-sub { color: var(--muted); font-size: 0.82rem; }
+
+    /* ── Card screen ── */
+    #card-screen { gap: 0; }
+
+    .card-header {
+      text-align: center;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+    .progress { color: var(--muted); font-size: 0.8rem; margin-top: 4px; }
+    .win-banner {
+      display: inline-block;
+      background: var(--gold);
+      color: var(--bg);
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 7px 20px;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    .bingo-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 5px;
+    }
+    .bingo-letter {
+      text-align: center;
+      font-family: 'Playfair Display', Georgia, serif;
+      color: var(--gold);
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 2px 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .cell {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      user-select: none;
+      transition: border-color 0.15s;
+      -webkit-touch-callout: none;
+    }
+    .cell:active:not(.checked):not(.win-cell) { border-color: var(--green); opacity: 0.85; }
+    .cell.checked { border-color: var(--green); }
+    .cell.win-cell { border-color: var(--win); }
+
+    .cell-photo {
+      position: absolute;
+      inset: 0;
+      background-color: var(--cell);
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .cell-photo.loaded { opacity: 1; }
+
+    .cell-placeholder {
+      position: absolute;
+      inset: 0;
+      background: var(--cell);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1rem, 3vw, 1.4rem);
+      transition: opacity 0.3s;
+    }
+    .cell-placeholder.hidden { opacity: 0; pointer-events: none; }
+
+    .cell-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.2) 55%, transparent 100%);
+    }
+    .cell.checked .cell-overlay {
+      background: linear-gradient(to top, rgba(20,55,32,0.92) 0%, rgba(20,55,32,0.65) 100%);
+    }
+    .cell.win-cell .cell-overlay { background: rgba(201,168,46,0.72); }
+
+    .cell-name {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 5px;
+      color: #fff;
+      font-size: clamp(0.5rem, 1.4vw, 0.6rem);
+      line-height: 1.3;
+      font-weight: 600;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+      z-index: 2;
+    }
+    .cell.win-cell .cell-name { color: #192C22; text-shadow: none; font-weight: 700; }
+
+    .cell-check {
+      position: absolute;
+      top: 3px; right: 4px;
+      color: var(--gold);
+      font-size: clamp(0.6rem, 1.8vw, 0.75rem);
+      font-weight: 800;
+      z-index: 3;
+      display: none;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+    }
+    .cell.checked .cell-check { display: block; }
+    .cell.win-cell .cell-check { color: #192C22; text-shadow: none; }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      max-width: 520px;
+    }
+    .btn-reset {
+      background: var(--gold);
+      color: var(--bg);
+      border: none;
+      border-radius: 10px;
+      padding: 13px 0;
+      width: 100%;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .btn-reset:active { background: var(--gold-dk); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 0;
+      width: 100%;
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-ghost:active { border-color: var(--green); color: var(--cream); }
+
+    .err-msg {
+      color: var(--error);
+      font-size: 0.83rem;
+      text-align: center;
+      margin: 4px 0;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Key screen -->
+  <div id="key-screen" class="screen">
+    <div class="feather">🪶</div>
+    <h1>Bird Bingo</h1>
+    <p class="key-desc">Enter your free eBird API key to generate a bingo card filled with birds spotted near you.</p>
+    <div class="err-msg" id="key-error"></div>
+    <input type="password" id="key-input" placeholder="Paste your eBird API key…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <button class="btn-primary" onclick="submitKey()">Find My Birds →</button>
+    <p class="key-hint">Get a free key at <b>ebird.org/api/keygen</b></p>
+  </div>
+
+  <!-- Loading screen -->
+  <div id="loading-screen" class="screen">
+    <div class="load-icon">🔭</div>
+    <p>Scanning the skies nearby…</p>
+    <p class="load-sub" id="load-sub">Querying eBird for recent local sightings</p>
+  </div>
+
+  <!-- Card screen -->
+  <div id="card-screen" class="screen">
+    <div class="card-header">
+      <h1>Bird Bingo</h1>
+      <p class="progress" id="progress-text"></p>
+      <div class="win-banner" id="win-banner" style="display:none">🎉 BINGO!</div>
+    </div>
+    <div class="err-msg" id="card-error"></div>
+    <div class="bingo-row">
+      <div class="bingo-letter">B</div>
+      <div class="bingo-letter">I</div>
+      <div class="bingo-letter">N</div>
+      <div class="bingo-letter">G</div>
+      <div class="bingo-letter">O</div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="footer">
+      <button class="btn-reset" id="reset-btn" onclick="handleReset()">↺  New Card</button>
+      <button class="btn-ghost" onclick="changeKey()">Change API Key</button>
+    </div>
+  </div>
+
+<script>
+// ─── Constants ────────────────────────────────────────────────────────────────
+const TOTAL    = 25;
+const KEEP_MAX = 18;
+const WIN_LINES = [
+  [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+  [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+  [0,6,12,18,24],[4,8,12,16,20],
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let state = {
+  apiKey:  null,
+  birds:   null,
+  checked: Array(TOTAL).fill(false),
+  winLine: null,
+  photos:  {},
+};
+
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+function lsGet(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function lsSet(key, val) {
+  try { localStorage.setItem(key, val); } catch {}
+}
+function lsClear(key) {
+  try { localStorage.removeItem(key); } catch {}
+}
+
+// ─── Screen management ────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+(function boot() {
+  const key  = lsGet('bingo:key');
+  const card = lsGet('bingo:card');
+
+  if (!key) { showScreen('key-screen'); return; }
+
+  state.apiKey = key;
+
+  if (card) {
+    try {
+      const s = JSON.parse(card);
+      state.birds   = s.birds;
+      state.checked = s.checked;
+      state.winLine = s.winLine || null;
+      state.photos  = s.photos || {};
+      renderCard();
+      showScreen('card-screen');
+      // Fetch any photos that didn't get cached yet
+      const missing = [...new Set(state.birds)].filter(b => !state.photos[b]);
+      if (missing.length) fetchPhotosProgressive(missing);
+      return;
+    } catch(e) {
+      lsClear('bingo:card');
+    }
+  }
+
+  showScreen('loading-screen');
+  generateCard(key, null, null);
+})();
+
+// ─── Key submission ───────────────────────────────────────────────────────────
+function submitKey() {
+  const k = document.getElementById('key-input').value.trim();
+  if (!k) return;
+  lsSet('bingo:key', k);
+  state.apiKey = k;
+  showScreen('loading-screen');
+  generateCard(k, null, null);
+}
+document.getElementById('key-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitKey();
+});
+
+// ─── Geolocation ─────────────────────────────────────────────────────────────
+function getLocation() {
+  return new Promise((res, rej) =>
+    navigator.geolocation.getCurrentPosition(
+      p => res({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => rej(new Error('Location denied — please allow location access in your browser settings.')),
+      { timeout: 12000, enableHighAccuracy: true }
+    )
+  );
+}
+
+// ─── eBird API (1km, 30 days) ─────────────────────────────────────────────────
+async function fetchBirds(apiKey, lat, lng) {
+  const url = `https://api.ebird.org/v2/data/obs/geo/recent?lat=${lat}&lng=${lng}&dist=1&back=30&maxResults=200`;
+  const r = await fetch(url, { headers: { 'X-eBirdApiToken': apiKey } });
+  if (r.status === 401 || r.status === 403) throw new Error('Invalid API key — check ebird.org/api/keygen.');
+  if (!r.ok) throw new Error('eBird API error — please try again.');
+  const data = await r.json();
+  if (!data.length) throw new Error('No sightings within 1km in the past 30 days. Try moving to a new spot!');
+  const seen = new Set();
+  return data
+    .filter(o => { if (seen.has(o.comName)) return false; seen.add(o.comName); return true; })
+    .map(o => o.comName);
+}
+
+// ─── Card building ────────────────────────────────────────────────────────────
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function padWithDuplicates(pool) {
+  const result = [];
+  const shuffled = shuffle([...pool]);
+  while (result.length < TOTAL) {
+    for (const b of shuffled) {
+      result.push(b);
+      if (result.length === TOTAL) break;
+    }
+  }
+  return shuffle(result);
+}
+
+function buildCard(fresh, prevBirds, prevChecked) {
+  if (!prevBirds) return padWithDuplicates(fresh);
+  const unchecked  = prevBirds.filter((_, i) => !prevChecked[i]);
+  const keepUnique = [...new Set(unchecked)].slice(0, KEEP_MAX);
+  const keepSet    = new Set(keepUnique);
+  const newOnes    = fresh.filter(b => !keepSet.has(b));
+  return padWithDuplicates([...keepUnique, ...newOnes].length ? [...keepUnique, ...newOnes] : fresh);
+}
+
+// ─── Photo fetching ───────────────────────────────────────────────────────────
+async function fetchOnePhoto(name) {
+  try {
+    const title = name.replace(/ /g, '_');
+    const url   = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=300&origin=*&redirects=1`;
+    const resp  = await fetch(url);
+    if (!resp.ok) return null;
+    const data  = await resp.json();
+    const pages = Object.values(data.query.pages);
+    return (pages.length && pages[0].thumbnail) ? pages[0].thumbnail.source : null;
+  } catch { return null; }
+}
+
+async function fetchPhotosProgressive(uniqueNames) {
+  await Promise.all(uniqueNames.map(async name => {
+    const url = await fetchOnePhoto(name);
+    if (url) {
+      state.photos[name] = url;
+      if (state.birds) {
+        state.birds.forEach((b, i) => { if (b === name) applyCellPhoto(i, url); });
+      }
+    }
+  }));
+  persistCard();
+}
+
+function applyCellPhoto(idx, url) {
+  const cell = document.querySelector(`.cell[data-idx="${idx}"]`);
+  if (!cell) return;
+  const photoEl    = cell.querySelector('.cell-photo');
+  const placeholder = cell.querySelector('.cell-placeholder');
+  if (!photoEl) return;
+  const img = new Image();
+  img.onload = () => {
+    photoEl.style.backgroundImage = `url('${url}')`;
+    photoEl.classList.add('loaded');
+    if (placeholder) placeholder.classList.add('hidden');
+  };
+  img.src = url;
+}
+
+// ─── Persist ──────────────────────────────────────────────────────────────────
+function persistCard() {
+  lsSet('bingo:card', JSON.stringify({
+    birds:   state.birds,
+    checked: state.checked,
+    winLine: state.winLine,
+    photos:  state.photos,
+  }));
+}
+
+// ─── Generate card ────────────────────────────────────────────────────────────
+async function generateCard(apiKey, prevBirds, prevChecked) {
+  showScreen('loading-screen');
+  setSub('Fetching your location…');
+  try {
+    const loc   = await getLocation();
+    setSub('Querying eBird within 1km…');
+    const fresh   = await fetchBirds(apiKey, loc.lat, loc.lng);
+    const birds   = buildCard(fresh, prevBirds, prevChecked);
+    const checked = Array(TOTAL).fill(false);
+
+    // Keep cached photos for any carried-over birds
+    const keptPhotos = {};
+    birds.forEach(b => { if (state.photos[b]) keptPhotos[b] = state.photos[b]; });
+
+    state.birds   = birds;
+    state.checked = checked;
+    state.winLine = null;
+    state.photos  = keptPhotos;
+
+    persistCard();
+    renderCard();
+    showScreen('card-screen');
+
+    // Apply cached photos, fetch the rest
+    birds.forEach((b, i) => { if (keptPhotos[b]) applyCellPhoto(i, keptPhotos[b]); });
+    const missing = [...new Set(birds)].filter(b => !keptPhotos[b]);
+    if (missing.length) fetchPhotosProgressive(missing);
+
+  } catch(e) {
+    if (state.birds) {
+      document.getElementById('card-error').textContent = e.message;
+      renderCard();
+      showScreen('card-screen');
+    } else {
+      document.getElementById('key-error').textContent = e.message;
+      showScreen('key-screen');
+    }
+  }
+}
+
+function setSub(msg) {
+  const el = document.getElementById('load-sub');
+  if (el) el.textContent = msg;
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderCard() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  const won = !!state.winLine;
+
+  state.birds.forEach((bird, i) => {
+    const isChecked = state.checked[i];
+    const isWin     = state.winLine && state.winLine.includes(i);
+
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (isChecked ? ' checked' : '') + (isWin ? ' win-cell' : '');
+    cell.dataset.idx = i;
+
+    const placeholder = document.createElement('div');
+    placeholder.className = 'cell-placeholder';
+    placeholder.textContent = '🐦';
+    cell.appendChild(placeholder);
+
+    const photo = document.createElement('div');
+    photo.className = 'cell-photo';
+    if (state.photos[bird]) {
+      const img = new Image();
+      img.onload = () => {
+        photo.style.backgroundImage = `url('${state.photos[bird]}')`;
+        photo.classList.add('loaded');
+        placeholder.classList.add('hidden');
+      };
+      img.src = state.photos[bird];
+    }
+    cell.appendChild(photo);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'cell-overlay';
+    cell.appendChild(overlay);
+
+    const name = document.createElement('div');
+    name.className = 'cell-name';
+    name.textContent = bird;
+    cell.appendChild(name);
+
+    const check = document.createElement('div');
+    check.className = 'cell-check';
+    check.textContent = '✓';
+    cell.appendChild(check);
+
+    if (!won) cell.addEventListener('click', () => tapCell(i));
+    grid.appendChild(cell);
+  });
+
+  const count = state.checked.filter(Boolean).length;
+  document.getElementById('progress-text').textContent   = `${count} of ${TOTAL} spotted`;
+  document.getElementById('win-banner').style.display    = won ? 'inline-block' : 'none';
+  document.getElementById('progress-text').style.display = won ? 'none' : 'block';
+  document.getElementById('reset-btn').textContent       = won ? '🐦  New Card' : '↺  New Card';
+  document.getElementById('card-error').textContent      = '';
+}
+
+// ─── Tap cell ─────────────────────────────────────────────────────────────────
+function tapCell(i) {
+  if (state.winLine) return;
+  state.checked[i] = !state.checked[i];
+  const wl = WIN_LINES.find(l => l.every(j => state.checked[j])) || null;
+  state.winLine = wl;
+  persistCard();
+  renderCard();
+  state.birds.forEach((b, idx) => { if (state.photos[b]) applyCellPhoto(idx, state.photos[b]); });
+}
+
+// ─── Reset & key change ───────────────────────────────────────────────────────
+function handleReset() {
+  generateCard(state.apiKey, state.birds, state.checked);
+}
+
+function changeKey() {
+  lsClear('bingo:key');
+  lsClear('bingo:card');
+  state = { apiKey: null, birds: null, checked: Array(TOTAL).fill(false), winLine: null, photos: {} };
+  document.getElementById('key-input').value = '';
+  document.getElementById('key-error').textContent = '';
+  showScreen('key-screen');
+}
+
+// ─── Service Worker registration ──────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
