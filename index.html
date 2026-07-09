@@ -178,8 +178,8 @@
       -webkit-touch-callout: none;
     }
     .cell:active:not(.checked):not(.win-cell) { border-color: var(--green); opacity: 0.85; }
-    .cell.checked { border-color: var(--green); }
-    .cell.win-cell { border-color: var(--win); }
+    .cell.checked { border: 3px solid var(--gold); }
+    .cell.win-cell { border: 3px solid var(--win); }
 
     .cell-photo {
       position: absolute;
@@ -210,7 +210,7 @@
       background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.2) 55%, transparent 100%);
     }
     .cell.checked .cell-overlay {
-      background: linear-gradient(to top, rgba(20,55,32,0.92) 0%, rgba(20,55,32,0.65) 100%);
+      background: rgba(10, 28, 16, 0.78);
     }
     .cell.win-cell .cell-overlay { background: rgba(201,168,46,0.72); }
 
@@ -229,15 +229,17 @@
 
     .cell-check {
       position: absolute;
-      top: 3px; right: 4px;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
       color: var(--gold);
-      font-size: clamp(0.6rem, 1.8vw, 0.75rem);
+      font-size: clamp(1.6rem, 5.5vw, 2.2rem);
       font-weight: 800;
       z-index: 3;
-      display: none;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.9);
     }
-    .cell.checked .cell-check { display: block; }
+    .cell.checked .cell-check { display: flex; }
     .cell.win-cell .cell-check { color: #192C22; text-shadow: none; }
 
     /* ── Footer ── */
@@ -285,6 +287,81 @@
       margin: 4px 0;
       min-height: 1.2em;
     }
+
+    /* ── Settings icon ── */
+    .card-header { position: relative; }
+    .btn-settings {
+      position: absolute;
+      top: 2px; right: 0;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 4px 6px;
+      line-height: 1;
+      opacity: 0.6;
+      transition: opacity 0.15s;
+    }
+    .btn-settings:active { opacity: 1; }
+
+    /* ── Confirm modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: #1F3529;
+      border: 1px solid #3A6048;
+      border-radius: 18px;
+      padding: 28px 22px 22px;
+      max-width: 300px;
+      width: 100%;
+      text-align: center;
+    }
+    .modal-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      color: var(--gold);
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+    }
+    .modal-sub {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+    .modal-btns { display: flex; flex-direction: column; gap: 10px; }
+    .btn-confirm {
+      background: var(--gold);
+      color: var(--bg);
+      border: none;
+      border-radius: 10px;
+      padding: 13px 0;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-confirm:active { background: var(--gold-dk); }
+    .btn-cancel {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid #3A6048;
+      border-radius: 10px;
+      padding: 12px 0;
+      font-size: 0.88rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-cancel:active { color: var(--cream); }
   </style>
 </head>
 <body>
@@ -311,6 +388,7 @@
   <div id="card-screen" class="screen">
     <div class="card-header">
       <h1>Bird Bingo</h1>
+      <button class="btn-settings" onclick="changeKey()" title="Change API Key">⚙️</button>
       <p class="progress" id="progress-text"></p>
       <div class="win-banner" id="win-banner" style="display:none">🎉 BINGO!</div>
     </div>
@@ -325,7 +403,18 @@
     <div class="grid" id="grid"></div>
     <div class="footer">
       <button class="btn-reset" id="reset-btn" onclick="handleReset()">↺  New Card</button>
-      <button class="btn-ghost" onclick="changeKey()">Change API Key</button>
+    </div>
+  </div>
+
+  <!-- Confirm new card modal -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal-box">
+      <p class="modal-title">Start a new card?</p>
+      <p class="modal-sub">Your current progress will be replaced with a fresh set of local birds.</p>
+      <div class="modal-btns">
+        <button class="btn-confirm" onclick="confirmReset()">Yes, new card</button>
+        <button class="btn-cancel" onclick="closeConfirm()">Keep playing</button>
+      </div>
     </div>
   </div>
 
@@ -633,7 +722,16 @@ function tapCell(i) {
 
 // ─── Reset & key change ───────────────────────────────────────────────────────
 function handleReset() {
+  document.getElementById('confirm-modal').classList.add('open');
+}
+
+function confirmReset() {
+  closeConfirm();
   generateCard(state.apiKey, state.birds, state.checked);
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-modal').classList.remove('open');
 }
 
 function changeKey() {
